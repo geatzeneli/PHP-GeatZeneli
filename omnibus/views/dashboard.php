@@ -118,6 +118,31 @@ $activities = $stmt->fetchAll();
 
 </div>
 
+<?php
+// Fetch global activity instead of just the user's
+$stmt = $pdo->query("
+    SELECT a.*, u.username, m.title, m.cover_image 
+    FROM activity_log a 
+    JOIN users u ON a.user_id = u.id 
+    JOIN media m ON a.media_id = m.id 
+    ORDER BY a.created_at DESC LIMIT 10
+");
+$global_activity = $stmt->fetchAll();
+?>
+
+<div class="activity-feed">
+    <?php foreach ($global_activity as $act): ?>
+        <div class="activity-item" style="display: flex; gap: 1rem; margin-bottom: 1rem; align-items: center;">
+            <img src="<?= htmlspecialchars($act['cover_image']) ?>" style="width: 40px; height: 60px; object-fit: cover; border-radius: 4px;">
+            <p style="font-size: 0.9rem;">
+                <strong style="color: var(--primary);"><?= htmlspecialchars($act['username']) ?></strong> 
+                <?= htmlspecialchars($act['action_type']) ?> 
+                <strong style="color: white;"><?= htmlspecialchars($act['title']) ?></strong>
+            </p>
+        </div>
+    <?php endforeach; ?>
+</div>
+
 <style>
 /* Dashboard specific card styling override */
 .stat-card {
