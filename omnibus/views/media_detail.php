@@ -21,36 +21,19 @@ if (isset($_SESSION['user_id'])) {
 ?>
 
 <style>
-    /* Base button style */
     .fav-btn {
-        flex: 1;
-        text-align: center;
-        cursor: pointer;
-        padding: 10px;
-        border-radius: var(--radius-sm);
-        font-size: 0.8rem;
-        transition: all 0.2s ease;
-        border: 1px solid transparent;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: var(--bg-card);
-        color: var(--text-muted);
+        flex: 1; text-align: center; cursor: pointer; padding: 10px;
+        border-radius: var(--radius-sm); font-size: 0.8rem;
+        transition: all 0.2s ease; border: 1px solid transparent;
+        display: flex; align-items: center; justify-content: center;
+        background: var(--bg-card); color: var(--text-muted);
     }
-
-    /* Gold Hover Effect */
-    .fav-btn:hover {
-        border-color: #FFD700;
-        color: #FFD700;
-    }
-
-    /* Gold Active Effect (Triggered on click via JS or initial PHP load) */
-    .fav-btn.active {
-        background: #FFD700 !important;
-        color: #000 !important;
-        font-weight: bold;
-        border-color: #FFD700;
-    }
+    .fav-btn:hover { border-color: #FFD700; color: #FFD700; }
+    .fav-btn.active { background: #FFD700 !important; color: #000 !important; font-weight: bold; border-color: #FFD700; }
+    
+    .admin-actions details { background: rgba(255,255,255,0.03); padding: 5px 10px; border-radius: 5px; margin-bottom: 5px; }
+    .admin-actions summary { font-size: 0.8rem; color: var(--text-muted); cursor: pointer; padding: 5px 0; }
+    .admin-actions summary:hover { color: var(--primary); }
 </style>
 
 <div class="app-container" style="margin-top: 2rem;">
@@ -94,34 +77,54 @@ if (isset($_SESSION['user_id'])) {
                         <div class="form-group mb-4">
                             <label class="tag mb-2" style="color: #FFD700;">Curator's Top 5</label>
                             <div id="fav-container" style="display: flex; gap: 8px; background: rgba(0,0,0,0.3); padding: 6px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
-                                
                                 <label class="fav-btn <?= ($user_entry['is_favorite'] ?? 0) == 1 ? 'active' : '' ?>">
-                                    <input type="radio" name="is_favorite" value="1" <?= ($user_entry['is_favorite'] ?? 0) == 1 ? 'checked' : '' ?> style="display:none;" onclick="updateToggle(this)">
-                                    Add
+                                    <input type="radio" name="is_favorite" value="1" <?= ($user_entry['is_favorite'] ?? 0) == 1 ? 'checked' : '' ?> style="display:none;" onclick="updateToggle(this)"> Add
                                 </label>
-
                                 <label class="fav-btn <?= ($user_entry['is_favorite'] ?? 0) == 0 ? 'active' : '' ?>">
-                                    <input type="radio" name="is_favorite" value="0" <?= ($user_entry['is_favorite'] ?? 0) == 0 ? 'checked' : '' ?> style="display:none;" onclick="updateToggle(this)">
-                                    Don't Add
+                                    <input type="radio" name="is_favorite" value="0" <?= ($user_entry['is_favorite'] ?? 0) == 0 ? 'checked' : '' ?> style="display:none;" onclick="updateToggle(this)"> Don't Add
                                 </label>
-
                             </div>
                         </div>
 
                         <button type="submit" class="btn btn-primary" style="width: 100%;">Update Entry</button>
                     </form>
                 </div>
+
+                <div class="admin-actions" style="margin-top: 2rem;">
+                    <p style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">Community Contribution</p>
+                    
+                    <details>
+                        <summary>Edit Name / Title</summary>
+                        <form action="index.php?page=media_detail&id=<?= $media_id ?>" method="POST" style="margin-top: 10px;">
+                            <input type="hidden" name="action" value="edit_title">
+                            <input type="hidden" name="media_id" value="<?= $media_id ?>">
+                            <input type="text" name="new_title" value="<?= htmlspecialchars($item['title']) ?>" class="form-control mb-2" required>
+                            <button type="submit" class="btn btn-ghost" style="width: 100%; font-size: 0.7rem;">Save Name</button>
+                        </form>
+                    </details>
+
+                    <details>
+                        <summary>Update Poster URL</summary>
+                        <form action="index.php?page=media_detail&id=<?= $media_id ?>" method="POST" style="margin-top: 10px;">
+                            <input type="hidden" name="action" value="edit_media">
+                            <input type="hidden" name="media_id" value="<?= $media_id ?>">
+                            <input type="text" name="cover_image" placeholder="Paste new URL..." class="form-control mb-2">
+                            <button type="submit" class="btn btn-ghost" style="width: 100%; font-size: 0.7rem;">Update Image</button>
+                        </form>
+                    </details>
+
+                    <?php if (isset($_SESSION['is_admin']) && $_SESSION['is_admin'] == 1): ?>
+                    <details style="border: 1px solid rgba(255,0,0,0.2);">
+                        <summary style="color: #ff4444;">Delete Entry (Permanent)</summary>
+                        <form action="index.php?page=media_detail&id=<?= $media_id ?>" method="POST" onsubmit="return confirm('This will remove this item for EVERYONE. Proceed?');" style="margin-top: 10px;">
+                            <input type="hidden" name="action" value="delete_media">
+                            <input type="hidden" name="media_id" value="<?= $media_id ?>">
+                            <button type="submit" class="btn" style="width: 100%; font-size: 0.7rem; background: #ff4444; color: white; border:none;">Delete for Everyone</button>
+                        </form>
+                    </details>
+                    <?php endif; ?>
+                </div>
             <?php endif; ?>
-            
-            <details style="margin-top: 1.5rem; color: var(--text-muted); cursor: pointer;">
-                <summary style="font-size: 0.8rem;">Update Poster URL</summary>
-                <form action="index.php?page=media_detail&id=<?= $media_id ?>" method="POST" style="margin-top: 10px;">
-                    <input type="hidden" name="action" value="edit_media">
-                    <input type="hidden" name="media_id" value="<?= $media_id ?>">
-                    <input type="text" name="cover_image" placeholder="Paste new URL here..." class="form-control mb-2">
-                    <button type="submit" class="btn btn-ghost" style="width: 100%; font-size: 0.7rem;">Update Image</button>
-                </form>
-            </details>
         </aside>
 
         <main>
@@ -180,14 +183,9 @@ if (isset($_SESSION['user_id'])) {
 
 <script>
 function updateToggle(radio) {
-    // 1. Get the container and all labels inside it
     const container = document.getElementById('fav-container');
     const labels = container.querySelectorAll('.fav-btn');
-    
-    // 2. Clear 'active' from all buttons
     labels.forEach(l => l.classList.remove('active'));
-    
-    // 3. Add 'active' to the parent label of the clicked radio
     radio.parentElement.classList.add('active');
 }
 </script>

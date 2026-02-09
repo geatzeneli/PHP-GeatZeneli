@@ -4,7 +4,7 @@
  * Handles all POST requests for Auth, Library, and Profile updates.
  */
 
-// 1. Handle Registration in includes/actions.php
+// 1. Handle Registration
 if ($page === 'register' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         if (register_user($pdo, $_POST['username'], $_POST['email'], $_POST['password'])) {
@@ -12,7 +12,6 @@ if ($page === 'register' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
     } catch (PDOException $e) {
-        // If the email already exists (Error 23000)
         if ($e->getCode() == 23000) {
             $error = "That email is already registered. Try logging in!";
         } else {
@@ -41,27 +40,37 @@ if ($page === 'logout') {
     exit;
 }
 
-// 7. Handle Media Reviews
-if (isset($_POST['action']) && $_POST['action'] === 'add_review') {
+// 4. COMMUNITY EDIT: EDIT TITLE (Wiki-style, any logged-in user)
+if (isset($_POST['action']) && $_POST['action'] === 'edit_title') {
     if (!isset($_SESSION['user_id'])) exit;
 
     $media_id = (int)$_POST['media_id'];
-    $content = htmlspecialchars(trim($_POST['review_content']));
+    $new_title = htmlspecialchars(trim($_POST['new_title']));
 
-    if (!empty($content)) {
-        $stmt = $pdo->prepare("INSERT INTO reviews (user_id, media_id, content) VALUES (?, ?, ?)");
-        $stmt->execute([$_SESSION['user_id'], $media_id, $content]);
-        
-        // Log this to activity feed too!
-        $log_stmt = $pdo->prepare("INSERT INTO activity_log (user_id, media_id, action_type) VALUES (?, ?, 'wrote a review')");
-        $log_stmt->execute([$_SESSION['user_id'], $media_id]);
+    if (!empty($new_title)) {
+        $stmt = $pdo->prepare("UPDATE media SET title = ? WHERE id = ?");
+        $stmt->execute([$new_title, $media_id]);
     }
-
-    header("Location: index.php?page=media_detail&id=" . $media_id . "&reviewed=1");
+    
+    header("Location: index.php?page=media_detail&id=" . $media_id . "&updated=title");
     exit;
 }
 
-// 4. LIBRARY UPDATES (Tracking, Ratings, & Favorites)
+// 5. COMMUNITY EDIT: EDIT POSTER (Wiki-style, any logged-in user)
+if (isset($_POST['action']) && $_POST['action'] === 'edit_media') {
+    if (!isset($_SESSION['user_id'])) exit;
+
+    $media_id = (int)$_POST['media_id'];
+    $new_cover = $_POST['cover_image'];
+    
+    $stmt = $pdo->prepare("UPDATE media SET cover_image = ? WHERE id = ?");
+    $stmt->execute([$new_cover, $media_id]);
+    
+    header("Location: index.php?page=media_detail&id=" . $media_id . "&updated=poster");
+    exit;
+}
+
+// 6. LIBRARY UPDATES (Tracking, Ratings, & Favorites)
 if (isset($_POST['action']) && $_POST['action'] === 'update_library') {
     if (!isset($_SESSION['user_id'])) {
         header("Location: index.php?page=login");
@@ -72,17 +81,12 @@ if (isset($_POST['action']) && $_POST['action'] === 'update_library') {
     $media_id = (int)$_POST['media_id'];
     $status = $_POST['status'];
     $rating = (!empty($_POST['rating'])) ? (int)$_POST['rating'] : null;
-    
-    // UPDATED: Capture radio button value (1 for Add, 0 for Don't Add)
-    // We cast to (int) to ensure it's a clean 1 or 0 for the database
     $is_favorite = isset($_POST['is_favorite']) ? (int)$_POST['is_favorite'] : 0;
 
     if (empty($status)) {
-        // If "Not Tracked" is selected, remove the entry
         $stmt = $pdo->prepare("DELETE FROM user_library WHERE user_id = ? AND media_id = ?");
         $stmt->execute([$user_id, $media_id]);
     } else {
-        // UPSERT Logic: Insert new record or update existing status/rating/favorite
         $stmt = $pdo->prepare("
             INSERT INTO user_library (user_id, media_id, status, rating, is_favorite, last_updated) 
             VALUES (?, ?, ?, ?, ?, NOW()) 
@@ -94,11 +98,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'update_library') {
         ");
         $stmt->execute([$user_id, $media_id, $status, $rating, $is_favorite]);
         
-        // Log to Activity Feed
-        $log_stmt = $pdo->prepare("
-            INSERT INTO activity_log (user_id, media_id, action_type, created_at) 
-            VALUES (?, ?, ?, NOW())
-        ");
+        $log_stmt = $pdo->prepare("INSERT INTO activity_log (user_id, media_id, action_type, created_at) VALUES (?, ?, ?, NOW())");
         $log_stmt->execute([$user_id, $media_id, $status]);
     }
 
@@ -106,32 +106,23 @@ if (isset($_POST['action']) && $_POST['action'] === 'update_library') {
     exit;
 }
 
-// 5. PROFILE & SETTINGS UPDATES
-if (isset($_POST['action']) && $_POST['action'] === 'update_profile') {
+// 7. REVIEWS
+if (isset($_POST['action']) && $_POST['action'] === 'add_review') {
     if (!isset($_SESSION['user_id'])) exit;
 
-    $bio = htmlspecialchars($_POST['bio']);
-    $avatar = $_POST['avatar_url'];
-    
-    $stmt = $pdo->prepare("UPDATE users SET bio = ?, avatar_url = ? WHERE id = ?");
-    $stmt->execute([$bio, $avatar, $_SESSION['user_id']]);
-    
-    header("Location: index.php?page=profile&updated=1");
-    exit;
-}
-
-if (isset($_POST['action']) && $_POST['action'] === 'edit_media') {
     $media_id = (int)$_POST['media_id'];
-    $new_cover = $_POST['cover_image'];
-    
-    $stmt = $pdo->prepare("UPDATE media SET cover_image = ? WHERE id = ?");
-    $stmt->execute([$new_cover, $media_id]);
-    
-    header("Location: index.php?page=media_detail&id=" . $media_id);
+    $content = htmlspecialchars(trim($_POST['review_content']));
+
+    if (!empty($content)) {
+        $stmt = $pdo->prepare("INSERT INTO reviews (user_id, media_id, content) VALUES (?, ?, ?)");
+        $stmt->execute([$_SESSION['user_id'], $media_id, $content]);
+    }
+
+    header("Location: index.php?page=media_detail&id=" . $media_id . "&reviewed=1");
     exit;
 }
 
-// 6. COMMUNITY MEDIA CONTRIBUTION (User Add)
+// 8. ADD NEW MEDIA (Community contribution)
 if (isset($_POST['action']) && $_POST['action'] === 'user_add_media') {
     if (!isset($_SESSION['user_id'])) exit;
 
@@ -142,7 +133,6 @@ if (isset($_POST['action']) && $_POST['action'] === 'user_add_media') {
     $image = $_POST['cover_image'];
     $desc = htmlspecialchars($_POST['description']);
 
-    // Check for duplicates before inserting
     $check = $pdo->prepare("SELECT id FROM media WHERE title = ? AND type = ?");
     $check->execute([$title, $type]);
     $existing = $check->fetch();
@@ -150,37 +140,28 @@ if (isset($_POST['action']) && $_POST['action'] === 'user_add_media') {
     if ($existing) {
         header("Location: index.php?page=media_detail&id=" . $existing['id'] . "&exists=1");
     } else {
-        $stmt = $pdo->prepare("
-            INSERT INTO media (type, title, creator, release_year, cover_image, description) 
-            VALUES (?, ?, ?, ?, ?, ?)
-        ");
+        $stmt = $pdo->prepare("INSERT INTO media (type, title, creator, release_year, cover_image, description) VALUES (?, ?, ?, ?, ?, ?)");
         $stmt->execute([$type, $title, $creator, $year, $image, $desc]);
-        
-        $new_id = $pdo->lastInsertId();
-        header("Location: index.php?page=media_detail&id=" . $new_id . "&new_entry=1");
+        header("Location: index.php?page=media_detail&id=" . $pdo->lastInsertId() . "&new_entry=1");
     }
     exit;
+}
 
-    // 8. Admin Delete Media
-// includes/actions.php
-
+// 9. ADMIN DELETE MEDIA (Strictly Admin)
 if (isset($_POST['action']) && $_POST['action'] === 'delete_media') {
-    // 1. Verify Admin status
     if (isset($_SESSION['is_admin']) && $_SESSION['is_admin'] == 1) {
         $media_id = (int)$_POST['media_id'];
-
-        try {
-            $stmt = $pdo->prepare("DELETE FROM media WHERE id = ?");
-            $stmt->execute([$media_id]);
-            
-            // Redirect to browse page after successful delete
-            header("Location: index.php?page=browse&deleted=1");
-            exit;
-        } catch (PDOException $e) {
-            die("Database Error: " . $e->getMessage());
-        }
+        
+        // Delete related library entries and reviews first to avoid foreign key issues
+        $pdo->prepare("DELETE FROM user_library WHERE media_id = ?")->execute([$media_id]);
+        $pdo->prepare("DELETE FROM reviews WHERE media_id = ?")->execute([$media_id]);
+        
+        $stmt = $pdo->prepare("DELETE FROM media WHERE id = ?");
+        $stmt->execute([$media_id]);
+        
+        header("Location: index.php?page=browse&deleted=1");
+        exit;
     } else {
-        die("Access Denied: You do not have admin privileges.");
+        die("Access Denied.");
     }
-}
 }
