@@ -20,6 +20,39 @@ if (isset($_SESSION['user_id'])) {
 }
 ?>
 
+<style>
+    /* Base button style */
+    .fav-btn {
+        flex: 1;
+        text-align: center;
+        cursor: pointer;
+        padding: 10px;
+        border-radius: var(--radius-sm);
+        font-size: 0.8rem;
+        transition: all 0.2s ease;
+        border: 1px solid transparent;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--bg-card);
+        color: var(--text-muted);
+    }
+
+    /* Gold Hover Effect */
+    .fav-btn:hover {
+        border-color: #FFD700;
+        color: #FFD700;
+    }
+
+    /* Gold Active Effect (Triggered on click via JS or initial PHP load) */
+    .fav-btn.active {
+        background: #FFD700 !important;
+        color: #000 !important;
+        font-weight: bold;
+        border-color: #FFD700;
+    }
+</style>
+
 <div class="app-container" style="margin-top: 2rem;">
     <div style="display: grid; grid-template-columns: 350px 1fr; gap: 4rem; align-items: start;">
         
@@ -58,14 +91,37 @@ if (isset($_SESSION['user_id'])) {
                             </select>
                         </div>
 
-                        <button type="submit" class="btn btn-primary" style="width: 100%;">Save to Archive</button>
+                        <div class="form-group mb-4">
+                            <label class="tag mb-2" style="color: #FFD700;">Curator's Top 5</label>
+                            <div id="fav-container" style="display: flex; gap: 8px; background: rgba(0,0,0,0.3); padding: 6px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+                                
+                                <label class="fav-btn <?= ($user_entry['is_favorite'] ?? 0) == 1 ? 'active' : '' ?>">
+                                    <input type="radio" name="is_favorite" value="1" <?= ($user_entry['is_favorite'] ?? 0) == 1 ? 'checked' : '' ?> style="display:none;" onclick="updateToggle(this)">
+                                    Add
+                                </label>
+
+                                <label class="fav-btn <?= ($user_entry['is_favorite'] ?? 0) == 0 ? 'active' : '' ?>">
+                                    <input type="radio" name="is_favorite" value="0" <?= ($user_entry['is_favorite'] ?? 0) == 0 ? 'checked' : '' ?> style="display:none;" onclick="updateToggle(this)">
+                                    Don't Add
+                                </label>
+
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary" style="width: 100%;">Update Entry</button>
                     </form>
                 </div>
-            <?php else: ?>
-                <div style="text-align: center; padding: 1.5rem; background: var(--glass); border-radius: var(--radius-md);">
-                    <p style="font-size: 0.9rem; color: var(--text-muted);"><a href="index.php?page=login" style="color: var(--primary);">Login</a> to track this work.</p>
-                </div>
             <?php endif; ?>
+            
+            <details style="margin-top: 1.5rem; color: var(--text-muted); cursor: pointer;">
+                <summary style="font-size: 0.8rem;">Update Poster URL</summary>
+                <form action="index.php?page=media_detail&id=<?= $media_id ?>" method="POST" style="margin-top: 10px;">
+                    <input type="hidden" name="action" value="edit_media">
+                    <input type="hidden" name="media_id" value="<?= $media_id ?>">
+                    <input type="text" name="cover_image" placeholder="Paste new URL here..." class="form-control mb-2">
+                    <button type="submit" class="btn btn-ghost" style="width: 100%; font-size: 0.7rem;">Update Image</button>
+                </form>
+            </details>
         </aside>
 
         <main>
@@ -85,63 +141,53 @@ if (isset($_SESSION['user_id'])) {
                     <?= nl2br(htmlspecialchars($item['description'])) ?>
                 </p>
             </div>
-        </main>
-        
-        <details style="margin-top: 1rem; color: var(--text-muted); cursor: pointer;">
-    <summary>Update Poster URL</summary>
-    <form action="index.php?page=media_detail&id=<?= $media_id ?>" method="POST" style="margin-top: 10px;">
-        <input type="hidden" name="action" value="edit_media">
-        <input type="hidden" name="media_id" value="<?= $media_id ?>">
-        <input type="text" name="cover_image" placeholder="Paste new URL here..." class="form-control mb-2">
-        <button type="submit" class="btn btn-ghost" style="width: 100%; font-size: 0.7rem;">Update Image</button>
-    </form>
-</details>
-<?php if (isset($_SESSION['is_admin']) && $_SESSION['is_admin'] == 1): ?>
-    <div class="admin-zone" style="margin-top: 2rem; padding: 1rem; border: 1px solid #ff4444; border-radius: 8px;">
-        <h4 style="color: #ff4444; margin-bottom: 1rem;">Admin Controls</h4>
-        <form action="index.php?page=media_detail&id=<?= $media_id ?>" method="POST" onsubmit="return confirm('Are you sure you want to delete this forever?');">
-            <input type="hidden" name="action" value="delete_media">
-            <input type="hidden" name="media_id" value="<?= $media_id ?>">
-            
-            <button type="submit" class="btn" style="background: #ff4444; color: white; width: 100%;">
-                DELETE PERMANENTLY
-            </button>
-        </form>
-    </div>
-<?php endif; ?>
-        <hr style="border: 0; border-top: 1px solid var(--border-subtle); margin: 3rem 0;">
 
-        <section class="reviews-section">
-            <h3 class="mb-4" style="letter-spacing: 1px;">CRITIC REVIEWS</h3>
+            <section class="reviews-section" style="margin-top: 3rem;">
+                <h3 class="mb-4" style="letter-spacing: 1px;">CRITIC REVIEWS</h3>
 
-            <?php if (isset($_SESSION['user_id'])): ?>
-                <form action="index.php?page=media_detail&id=<?= $media_id ?>" method="POST" class="mb-5">
-                    <input type="hidden" name="action" value="add_review">
-                    <input type="hidden" name="media_id" value="<?= $media_id ?>">
-                    <textarea name="review_content" placeholder="Write your thoughts on this work..." class="form-control mb-2" style="background: var(--bg-card); border: 1px solid var(--border-subtle); min-height: 100px;"></textarea>
-                    <button type="submit" class="btn btn-ghost" style="font-size: 0.8rem;">Post Review</button>
-                </form>
-            <?php endif; ?>
+                <?php if (isset($_SESSION['user_id'])): ?>
+                    <form action="index.php?page=media_detail&id=<?= $media_id ?>" method="POST" class="mb-5">
+                        <input type="hidden" name="action" value="add_review">
+                        <input type="hidden" name="media_id" value="<?= $media_id ?>">
+                        <textarea name="review_content" placeholder="Write your thoughts..." class="form-control mb-2" style="background: var(--bg-card); border: 1px solid var(--border-subtle); min-height: 100px;"></textarea>
+                        <button type="submit" class="btn btn-ghost" style="font-size: 0.8rem;">Post Review</button>
+                    </form>
+                <?php endif; ?>
 
-            <?php
-            $review_stmt = $pdo->prepare("SELECT r.*, u.username, u.avatar_url FROM reviews r JOIN users u ON r.user_id = u.id WHERE r.media_id = ? ORDER BY r.created_at DESC");
-            $review_stmt->execute([$media_id]);
-            $reviews = $review_stmt->fetchAll();
+                <?php
+                $review_stmt = $pdo->prepare("SELECT r.*, u.username, u.avatar_url FROM reviews r JOIN users u ON r.user_id = u.id WHERE r.media_id = ? ORDER BY r.created_at DESC");
+                $review_stmt->execute([$media_id]);
+                $reviews = $review_stmt->fetchAll();
 
-            if (empty($reviews)): ?>
-                <p style="color: var(--text-muted); font-style: italic;">No reviews yet. Be the first to share your thoughts.</p>
-            <?php else: ?>
-                <?php foreach ($reviews as $rev): ?>
-                    <div style="background: var(--bg-card); padding: 1.5rem; border-radius: var(--radius-md); margin-bottom: 1rem; border: 1px solid var(--border-subtle);">
-                        <div class="flex-row mb-2" style="gap: 10px; align-items: center;">
-                            <img src="<?= $rev['avatar_url'] ?: 'https://ui-avatars.com/api/?name='.$rev['username'] ?>" style="width: 30px; height: 30px; border-radius: 50%;">
-                            <span style="font-weight: bold; font-size: 0.9rem; color: var(--primary);"><?= htmlspecialchars($rev['username']) ?></span>
-                            <span style="font-size: 0.7rem; color: var(--text-muted);"><?= date('M d, Y', strtotime($rev['created_at'])) ?></span>
+                if (empty($reviews)): ?>
+                    <p style="color: var(--text-muted); font-style: italic;">No reviews yet.</p>
+                <?php else: ?>
+                    <?php foreach ($reviews as $rev): ?>
+                        <div style="background: var(--bg-card); padding: 1.5rem; border-radius: var(--radius-md); margin-bottom: 1rem; border: 1px solid var(--border-subtle);">
+                            <div class="flex-row mb-2" style="gap: 10px; align-items: center;">
+                                <img src="<?= $rev['avatar_url'] ?: 'https://ui-avatars.com/api/?name='.$rev['username'] ?>" style="width: 30px; height: 30px; border-radius: 50%;">
+                                <span style="font-weight: bold; font-size: 0.9rem; color: var(--primary);"><?= htmlspecialchars($rev['username']) ?></span>
+                                <span style="font-size: 0.7rem; color: var(--text-muted);"><?= date('M d, Y', strtotime($rev['created_at'])) ?></span>
+                            </div>
+                            <p style="color: var(--text-muted); line-height: 1.6;"><?= nl2br(htmlspecialchars($rev['content'])) ?></p>
                         </div>
-                        <p style="color: var(--text-muted); line-height: 1.6;"><?= nl2br(htmlspecialchars($rev['content'])) ?></p>
-                    </div>
-                <?php endforeach; ?>
-            <?php endif; ?>
-        </section>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </section>
+        </main>
     </div>
 </div>
+
+<script>
+function updateToggle(radio) {
+    // 1. Get the container and all labels inside it
+    const container = document.getElementById('fav-container');
+    const labels = container.querySelectorAll('.fav-btn');
+    
+    // 2. Clear 'active' from all buttons
+    labels.forEach(l => l.classList.remove('active'));
+    
+    // 3. Add 'active' to the parent label of the clicked radio
+    radio.parentElement.classList.add('active');
+}
+</script>

@@ -1,5 +1,7 @@
 /* assets/css/style.css */
 
+
+
 :root {
     /* --- PALETTE: Cinematic Dark Mode --- */
     --bg-deep: #0a0b10;       /* Almost black */
@@ -256,3 +258,35 @@ input:focus, select:focus, textarea:focus {
     opacity: 0.1;
     z-index: 0;
 }
+
+<style>
+    .fav-btn {
+        flex: 1;
+        text-align: center;
+        cursor: pointer;
+        padding: 8px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        transition: all 0.2s ease;
+        border: 1px solid transparent;
+    }
+
+    /* The Hover State you wanted */
+    .fav-btn:hover {
+        border-color: #FFD700;
+        color: #FFD700;
+        background: rgba(255, 215, 0, 0.1);
+    }
+
+    /* Style for the currently active/selected button */
+    .fav-btn.active {
+        background: #FFD700 !important;
+        color: black !important;
+        font-weight: bold;
+    }
+    
+    .fav-btn.inactive {
+        background: var(--bg-card);
+        color: var(--text-muted);
+    }
+</style>

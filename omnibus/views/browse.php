@@ -1,4 +1,5 @@
 <?php
+
 // 1. DATA LOGIC: Fetch Recently Added (Top 4)
 $recent_stmt = $pdo->query("SELECT * FROM media ORDER BY id DESC LIMIT 4");
 $recently_added = $recent_stmt->fetchAll();
@@ -27,6 +28,21 @@ $stmt->execute($params);
 $items = $stmt->fetchAll();
 ?>
 
+<div class="browse-hero" style="padding: 3rem 2rem; background: var(--glass); border-radius: var(--radius-lg); border: 1px solid var(--border-subtle); margin-bottom: 3rem; text-align: center;">
+    <h1 class="text-gradient" style="font-size: 2.5rem; margin-bottom: 1rem;">Your Personal Omnibus</h1>
+    <p style="color: var(--text-muted); max-width: 700px; margin: 0 auto 1.5rem auto; line-height: 1.6; font-size: 1.1rem;">
+        Your own media museum.
+
+This is your personal archive of the stories that define you. Use the Watchlist to queue up the movies, shows, and books you can’t wait to experience next. Once finished, honor the true masterpieces by rating them 1 to 5 stars and adding your own critique. If you find something new to preserve, simply add it to the collection.
+    </p>
+    
+    <div style="display: flex; gap: 1rem; justify-content: center; align-items: center;">
+        <span style="color: var(--text-muted); font-size: 0.9rem;">Want to expand your collection?</span>
+        <a href="index.php?page=add_media" class="btn btn-primary" style="padding: 0.6rem 1.5rem; font-size: 0.9rem;">
+            + Add New Media
+        </a>
+    </div>
+</div>
 <section class="mb-5" style="background: rgba(255,255,255,0.02); padding: 2rem; border-radius: var(--radius-lg); border: 1px solid var(--border-subtle);">
     <div class="flex-row mb-3" style="justify-content: space-between; align-items: center;">
         <h2 style="font-size: 0.9rem; text-transform: uppercase; letter-spacing: 2px; color: var(--primary); font-weight: 700;">New in the Archive</h2>

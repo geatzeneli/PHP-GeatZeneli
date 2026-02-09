@@ -61,7 +61,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'add_review') {
     exit;
 }
 
-// 4. LIBRARY UPDATES (Tracking & Ratings)
+// 4. LIBRARY UPDATES (Tracking, Ratings, & Favorites)
 if (isset($_POST['action']) && $_POST['action'] === 'update_library') {
     if (!isset($_SESSION['user_id'])) {
         header("Location: index.php?page=login");
@@ -71,24 +71,28 @@ if (isset($_POST['action']) && $_POST['action'] === 'update_library') {
     $user_id = $_SESSION['user_id'];
     $media_id = (int)$_POST['media_id'];
     $status = $_POST['status'];
-    // Ensure rating is stored as an integer (1-5) or NULL
     $rating = (!empty($_POST['rating'])) ? (int)$_POST['rating'] : null;
+    
+    // UPDATED: Capture radio button value (1 for Add, 0 for Don't Add)
+    // We cast to (int) to ensure it's a clean 1 or 0 for the database
+    $is_favorite = isset($_POST['is_favorite']) ? (int)$_POST['is_favorite'] : 0;
 
     if (empty($status)) {
         // If "Not Tracked" is selected, remove the entry
         $stmt = $pdo->prepare("DELETE FROM user_library WHERE user_id = ? AND media_id = ?");
         $stmt->execute([$user_id, $media_id]);
     } else {
-        // UPSERT Logic: Insert new record or update existing status/rating
+        // UPSERT Logic: Insert new record or update existing status/rating/favorite
         $stmt = $pdo->prepare("
-            INSERT INTO user_library (user_id, media_id, status, rating, last_updated) 
-            VALUES (?, ?, ?, ?, NOW()) 
+            INSERT INTO user_library (user_id, media_id, status, rating, is_favorite, last_updated) 
+            VALUES (?, ?, ?, ?, ?, NOW()) 
             ON DUPLICATE KEY UPDATE 
                 status = VALUES(status), 
                 rating = VALUES(rating),
+                is_favorite = VALUES(is_favorite),
                 last_updated = NOW()
         ");
-        $stmt->execute([$user_id, $media_id, $status, $rating]);
+        $stmt->execute([$user_id, $media_id, $status, $rating, $is_favorite]);
         
         // Log to Activity Feed
         $log_stmt = $pdo->prepare("
