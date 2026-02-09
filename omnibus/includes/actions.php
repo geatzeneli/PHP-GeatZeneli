@@ -164,4 +164,23 @@ if (isset($_POST['action']) && $_POST['action'] === 'delete_media') {
     } else {
         die("Access Denied.");
     }
+
+
+}
+
+// 10. UPDATE PROFILE (Bio & Avatar ONLY)
+if (isset($_POST['action']) && $_POST['action'] === 'update_profile') {
+    if (!isset($_SESSION['user_id'])) exit;
+
+    $user_id = $_SESSION['user_id'];
+    $new_bio = htmlspecialchars(trim($_POST['bio']));
+    $new_avatar = trim($_POST['avatar_url']);
+
+    // Update the database
+    $stmt = $pdo->prepare("UPDATE users SET bio = ?, avatar_url = ? WHERE id = ?");
+    $stmt->execute([$new_bio, $new_avatar, $user_id]);
+
+    // Redirect back to profile
+    header("Location: index.php?page=profile&updated=1");
+    exit;
 }
