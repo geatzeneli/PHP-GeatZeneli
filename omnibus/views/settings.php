@@ -1,5 +1,13 @@
 <?php
-// Fetch current user data to fill the form
+// Tell the file to look for the database connection defined in index.php
+global $pdo; 
+
+if (!$pdo) {
+    // This will help us debug if the connection is actually missing
+    die("Database connection ($pdo) is not initialized. Check your index.php order.");
+}
+
+// Now fetch current user data
 $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
 $stmt->execute([$_SESSION['user_id']]);
 $user = $stmt->fetch();
