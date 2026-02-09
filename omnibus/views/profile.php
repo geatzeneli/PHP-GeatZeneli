@@ -27,7 +27,18 @@ $stmt = $pdo->prepare("
 $stmt->execute([$profile_id]);
 $favorite_items = $stmt->fetchAll();
 
-// 4. FETCH 'Completed' items
+// 4. FETCH 'Currently Consuming' (In Progress) - NEW SEPARATE FETCH
+$stmt = $pdo->prepare("
+    SELECT m.*, ul.status 
+    FROM user_library ul 
+    JOIN media m ON ul.media_id = m.id 
+    WHERE ul.user_id = ? AND ul.status = 'consuming' 
+    ORDER BY ul.last_updated DESC
+");
+$stmt->execute([$profile_id]);
+$in_progress_items = $stmt->fetchAll();
+
+// 5. FETCH 'Completed' items
 $stmt = $pdo->prepare("
     SELECT m.*, ul.rating, ul.status 
     FROM user_library ul 
@@ -38,12 +49,12 @@ $stmt = $pdo->prepare("
 $stmt->execute([$profile_id]);
 $finished_items = $stmt->fetchAll();
 
-// 5. FETCH Watchlist (Planned + In Progress)
+// 6. FETCH Watchlist (Planned ONLY) - UPDATED FETCH
 $stmt = $pdo->prepare("
     SELECT m.*, ul.status 
     FROM user_library ul 
     JOIN media m ON ul.media_id = m.id 
-    WHERE ul.user_id = ? AND (ul.status = 'want' OR ul.status = 'consuming') 
+    WHERE ul.user_id = ? AND ul.status = 'want' 
     ORDER BY ul.last_updated DESC
 ");
 $stmt->execute([$profile_id]);
@@ -89,8 +100,36 @@ $is_own_profile = (isset($_SESSION['user_id']) && $_SESSION['user_id'] == $profi
 
     <section class="mb-5">
         <div class="flex-row mb-4" style="justify-content: space-between; align-items: center; border-left: 4px solid var(--primary); padding-left: 1rem; display: flex;">
-            <h2 style="font-family: var(--font-heading); text-transform: uppercase; letter-spacing: 2px;">The Finished Shelf</h2>
-            <span class="tag" style="background: var(--primary); color: black; padding: 4px 12px; border-radius: 20px; font-weight: bold;"><?= count($finished_items) ?> Items</span>
+            <h2 style="font-family: var(--font-heading); text-transform: uppercase; letter-spacing: 2px; color: var(--primary);">Currently In Progress</h2>
+            <span class="tag" style="background: var(--primary-glow); color: var(--primary); padding: 4px 12px; border-radius: 20px; font-weight: bold;"><?= count($in_progress_items) ?> Items</span>
+        </div>
+        <div class="grid-media" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1.5rem;">
+            <?php if (empty($in_progress_items)): ?>
+                <div style="grid-column: 1/-1; padding: 3rem; text-align: center; background: var(--glass); border-radius: var(--radius-md); border: 1px dashed var(--border-subtle);">
+                    <p style="color: var(--text-muted);">Nothing currently in the works.</p>
+                </div>
+            <?php else: ?>
+                <?php foreach ($in_progress_items as $item): ?>
+                    <div class="media-card" style="border: 1px solid var(--primary);">
+                        <a href="index.php?page=media_detail&id=<?= $item['id'] ?>">
+                            <img src="<?= htmlspecialchars($item['cover_image']) ?>" class="media-poster" alt="Cover" style="width: 100%; border-radius: var(--radius-sm);">
+                            <div class="media-info" style="padding: 10px;">
+                                <h4 style="font-size: 0.95rem; margin-bottom: 0.4rem;"><?= htmlspecialchars($item['title']) ?></h4>
+                                <div style="background: rgba(255,255,255,0.1); height: 4px; border-radius: 2px; margin-top: 8px;">
+                                    <div style="width: 65%; height: 100%; background: var(--primary);"></div>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                <?php endforeach; ?>
+            <?php endif; ?>
+        </div>
+    </section>
+
+    <section class="mb-5">
+        <div class="flex-row mb-4" style="justify-content: space-between; align-items: center; border-left: 4px solid #4ade80; padding-left: 1rem; display: flex;">
+            <h2 style="font-family: var(--font-heading); text-transform: uppercase; letter-spacing: 2px; color: #4ade80;">The Finished Shelf</h2>
+            <span class="tag" style="background: #4ade80; color: black; padding: 4px 12px; border-radius: 20px; font-weight: bold;"><?= count($finished_items) ?> Items</span>
         </div>
         <div class="grid-media" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1.5rem;">
             <?php if (empty($finished_items)): ?>
@@ -133,9 +172,7 @@ $is_own_profile = (isset($_SESSION['user_id']) && $_SESSION['user_id'] == $profi
                             <img src="<?= htmlspecialchars($watch['cover_image']) ?>" class="media-poster" alt="Cover" style="width: 100%; border-radius: var(--radius-sm);">
                             <div class="media-info" style="padding: 10px;">
                                 <h4 style="font-size: 0.95rem; margin-bottom: 0.4rem;"><?= htmlspecialchars($watch['title']) ?></h4>
-                                <span style="font-size: 0.7rem; color: #00d4ff; text-transform: uppercase; font-weight: bold;">
-                                    <?= $watch['status'] == 'consuming' ? 'In Progress' : 'Planned' ?>
-                                </span>
+                                <span style="font-size: 0.7rem; color: #00d4ff; text-transform: uppercase; font-weight: bold;">Planned</span>
                             </div>
                         </a>
                     </div>
